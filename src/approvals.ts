@@ -53,3 +53,21 @@ export function writeApproval(
 
   fs.writeFileSync(approvalsPath, yaml.dump({ approved: updated }), "utf-8");
 }
+
+export function removeApproval(
+  filePath: string,
+  cwd: string = process.cwd()
+): boolean {
+  const approvalsPath = getApprovalsPath(cwd);
+  const existing = readApprovals(cwd);
+
+  const before = existing.length;
+  const updated = existing.filter((a) => a.path !== filePath);
+
+  if (updated.length === before) {
+    return false;
+  }
+
+  fs.writeFileSync(approvalsPath, yaml.dump({ approved: updated }), "utf-8");
+  return true;
+}

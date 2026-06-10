@@ -7,14 +7,35 @@ export function getRequestsDir(cwd: string = process.cwd()): string {
   return path.join(cwd, ".agent-scope", "requests");
 }
 
+export function listRequests(cwd: string = process.cwd()): string[] {
+  const requestsDir = getRequestsDir(cwd);
+  if (!fs.existsSync(requestsDir)) {
+    return [];
+  }
+  return fs
+    .readdirSync(requestsDir)
+    .filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"))
+    .sort();
+}
+
+export function readRequest(filename: string, cwd: string = process.cwd()): ScopeRequest | null {
+  const requestsDir = getRequestsDir(cwd);
+  const filePath = path.join(requestsDir, filename);
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+  const raw = fs.readFileSync(filePath, "utf-8");
+  return yaml.load(raw) as ScopeRequest;
+}
+
 export function createRequest(
   taskId: string,
   paths: string[],
   reason: string,
   options: {
-    agentSummary?: string;
     riskLevel?: string;
     riskWhy?: string;
+    agentSummary?: string;
     suggestedChecks?: string[];
     cwd?: string;
   } = {}

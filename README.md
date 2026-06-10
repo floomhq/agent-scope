@@ -1,6 +1,6 @@
 # agent-scope
 
-[![npm version](https://img.shields.io/npm/v/agent-scope.svg)](https://www.npmjs.com/package/@floomhq/agent-scope)
+[![npm version](https://img.shields.io/npm/v/@floomhq/agent-scope.svg)](https://www.npmjs.com/package/@floomhq/agent-scope)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](./tests)
 
@@ -34,7 +34,7 @@ mode: strict
 
 task:
   id: "email-settings-v2"
-  title: "Refactor email settings UI"
+  title: "Add onboarding email settings"
 
 scope:
   read:
@@ -59,16 +59,22 @@ The agent can **read** the whole repo for context, but can only **write** what y
 # 1. Initialize a scope file
 agent-scope init
 
-# 2. Edit agent.scope.yml to define boundaries
+# 2. Guided setup (recommended)
+agent-scope init --interactive
 
-# 3. Make changes, then validate
+# 3. Edit agent.scope.yml to define boundaries
+
+# 4. Make changes, then validate
 agent-scope check
 
-# 4. If the agent needs to touch a protected file
+# 5. See your current scope and status
+agent-scope status
+
+# 6. If the agent needs to touch a protected file
 agent-scope request packages/auth/session.ts \
   --reason "Need session field for notification preference"
 
-# 5. Approve the expansion
+# 7. Approve the expansion
 agent-scope approve packages/auth/session.ts
 ```
 
@@ -76,12 +82,18 @@ agent-scope approve packages/auth/session.ts
 
 | Command | Description |
 |---------|-------------|
-| `agent-scope init` | Create `agent.scope.yml` and `.agent-scope/` directory |
+| `agent-scope init` | Create `agent.scope.yml` and `.agent-scope/` |
+| `agent-scope init --interactive` | Guided setup with prompts |
 | `agent-scope check` | Validate current git diff against scope |
 | `agent-scope run` | Validate scope, then run `checks.before_done` |
 | `agent-scope run <cmd>` | Validate scope, then run a custom command |
-| `agent-scope request <path>` | Create a scope expansion request |
+| `agent-scope status` | Show task, scope, approvals, and pending requests |
+| `agent-scope scope` | Display the full scope configuration |
+| `agent-scope request <path...>` | Create a scope expansion request |
 | `agent-scope approve <path>` | Approve a file or path for the current task |
+| `agent-scope unapprove <path>` | Remove an approval |
+| `agent-scope pending` | List pending scope expansion requests |
+| `agent-scope approvals` | List current approvals |
 
 ### Check options
 
@@ -111,10 +123,12 @@ Blocked changes:
 
 Result: Scope violation found.
 
-Next:
-- revert blocked files
-- request scope expansion: agent-scope request <path> --reason ...
-- approve specific file change: agent-scope approve <path>
+Next steps:
+
+  packages/auth/session.ts
+    Revert:           git checkout -- packages/auth/session.ts
+    Request access:   agent-scope request packages/auth/session.ts --reason "..."
+    Approve:          agent-scope approve packages/auth/session.ts
 ```
 
 ## Enforcement model

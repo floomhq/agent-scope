@@ -52,13 +52,24 @@ export function printReport(result: CheckResult, format: "pretty" | "json" = "pr
     console.log(pc.green("Result: Clean. All changes are in scope.\n"));
   } else if (result.violations.length > 0) {
     console.log(pc.red("Result: Scope violation found.\n"));
-    console.log(pc.bold("Next:"));
-    console.log("- revert blocked files");
-    console.log("- request scope expansion: agent-scope request <path> --reason ...");
-    console.log("- approve specific file change: agent-scope approve <path>");
-    console.log();
+    console.log(pc.bold("Next steps:"));
+    console.log("");
+    for (const v of result.violations) {
+      console.log(`  ${pc.bold(v.file)}`);
+      console.log(`    Revert:           git checkout -- ${v.file}`);
+      console.log(`    Request access:   agent-scope request ${v.file} --reason "..."`);
+      console.log(`    Approve:          agent-scope approve ${v.file}`);
+      console.log("");
+    }
   } else {
     console.log(pc.yellow("Result: Approval required for some files.\n"));
+    console.log(pc.bold("Next steps:"));
+    console.log("");
+    for (const a of result.approvalRequired) {
+      console.log(`  ${pc.bold(a.file)}`);
+      console.log(`    Approve:  agent-scope approve ${a.file}`);
+      console.log("");
+    }
   }
 }
 

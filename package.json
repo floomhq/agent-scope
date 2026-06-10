@@ -49,6 +49,9 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm test"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "js-yaml": "^4.1.0",
     "micromatch": "^4.0.8",
