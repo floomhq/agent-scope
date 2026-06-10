@@ -53,6 +53,12 @@ scope:
 
 The agent can **read** the whole repo for context, but can only **write** what you scoped. Touch a protected file and the check fails.
 
+## Demo
+
+<p align="center">
+  <img src="assets/demo.gif" alt="agent-scope CLI demo" width="900">
+</p>
+
 ## Quick start
 
 ```bash
