@@ -1,6 +1,6 @@
 # agent-scope
 
-[![npm version](https://img.shields.io/npm/v/agent-scope.svg)](https://www.npmjs.com/package/agent-scope)
+[![npm version](https://img.shields.io/npm/v/agent-scope.svg)](https://www.npmjs.com/package/@floomhq/agent-scope)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](./tests)
 
@@ -9,7 +9,7 @@
 Stop Claude, Cursor, Codex, and other coding agents from silently changing code outside their intended task boundary. Give them broad read access, narrow write access, and enforce approval for protected modules.
 
 ```bash
-npm install -g agent-scope
+npm install -g @floomhq/agent-scope
 ```
 
 ---
@@ -171,7 +171,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: npm install -g agent-scope
+      - run: npm install -g @floomhq/agent-scope
       - run: agent-scope check --base origin/${{ github.base_ref }}
 ```
 
@@ -233,13 +233,13 @@ This creates `.agent-scope/requests/2026-06-10-email-settings-v2.yml` with full 
 ## Installation
 
 ```bash
-npm install -g agent-scope
+npm install -g @floomhq/agent-scope
 ```
 
 Or use with `npx`:
 
 ```bash
-npx agent-scope check
+npx @floomhq/agent-scope check
 ```
 
 Requires Node.js >= 20.

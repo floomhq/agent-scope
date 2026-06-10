@@ -26,7 +26,7 @@ description: |
 ## Quick setup
 
 ```bash
-npm install -g agent-scope
+npm install -g @floomhq/agent-scope
 agent-scope init
 ```
 
@@ -120,7 +120,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: npm install -g agent-scope
+      - run: npm install -g @floomhq/agent-scope
       - run: agent-scope check --base origin/${{ github.base_ref }}
 ```
 
