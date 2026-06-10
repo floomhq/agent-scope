@@ -6,9 +6,9 @@
   "author": "Federico De Ponte",
   "type": "module",
   "bin": {
-    "agent-scope": "./dist/src/cli.js"
+    "agent-scope": "./dist/cli.js"
   },
-  "main": "./dist/src/cli.js",
+  "main": "./dist/cli.js",
   "files": [
     "dist",
     "examples",

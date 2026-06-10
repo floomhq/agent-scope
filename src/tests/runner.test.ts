@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { runCommand, runCheckList } from "../src/runner.js";
+import { runCommand, runCheckList } from "../runner.js";
 
 describe("runner", () => {
   describe("runCommand", () => {

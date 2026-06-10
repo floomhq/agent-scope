@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { validateConfig } from "../src/config.js";
-import type { AgentScopeConfig } from "../src/types.js";
+import { validateConfig } from "../config.js";
+import type { AgentScopeConfig } from "../types.js";
 
 describe("config", () => {
   describe("validateConfig", () => {

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { matchAny, normalizePath } from "../src/matcher.js";
+import { matchAny, normalizePath } from "../matcher.js";
 
 describe("matcher", () => {
   describe("normalizePath", () => {

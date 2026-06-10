@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { evaluateFile, evaluateAll } from "../src/policy.js";
-import type { AgentScopeConfig, ApprovalEntry } from "../src/types.js";
+import { evaluateFile, evaluateAll } from "../policy.js";
+import type { AgentScopeConfig, ApprovalEntry } from "../types.js";
 
 function makeConfig(overrides: Partial<AgentScopeConfig["scope"] & { mode?: "strict" | "warn" }> = {}): AgentScopeConfig {
   return {
