@@ -1,0 +1,43 @@
+version: "0.1"
+
+mode: strict
+
+task:
+  id: "settings-email-v1"
+  title: "Add onboarding email settings"
+  description: "Add UI and backend support for onboarding email preferences."
+
+scope:
+  read:
+    - "**/*"
+
+  write:
+    - "apps/web/settings/**"
+    - "packages/email/**"
+
+  protected:
+    - "packages/auth/**"
+    - "packages/billing/**"
+    - "db/migrations/**"
+    - "infra/**"
+    - ".env*"
+
+  approval_required:
+    - "package.json"
+    - "pnpm-lock.yaml"
+    - "yarn.lock"
+    - "bun.lockb"
+    - "turbo.json"
+    - "next.config.*"
+
+checks:
+  before_done:
+    - "pnpm typecheck"
+    - "pnpm test"
+
+escalation:
+  mode: "ask"
+  allowed_actions:
+    - "request_scope_expansion"
+    - "create_followup_issue"
+    - "revert_file"

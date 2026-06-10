@@ -1,0 +1,66 @@
+{
+  "name": "agent-scope",
+  "version": "0.1.0",
+  "description": "Scoped write access for AI coding agents. Stop agents from silently breaking code outside their task boundary.",
+  "license": "MIT",
+  "author": "Federico De Ponte",
+  "type": "module",
+  "bin": {
+    "agent-scope": "./dist/src/cli.js"
+  },
+  "main": "./dist/src/cli.js",
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai-agent",
+    "ai-coding",
+    "agent-guardrail",
+    "scope-enforcement",
+    "code-boundary",
+    "monorepo",
+    "cursor",
+    "claude-code",
+    "codex",
+    "vibecoding",
+    "protected-paths",
+    "write-scope",
+    "agent-permissions",
+    "prevent-breaking-changes",
+    "cli",
+    "git",
+    "code-review"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/federicodeponte/agent-scope.git"
+  },
+  "bugs": {
+    "url": "https://github.com/federicodeponte/agent-scope/issues"
+  },
+  "homepage": "https://github.com/federicodeponte/agent-scope#readme",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --test dist/tests/*.test.js",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "micromatch": "^4.0.8",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/micromatch": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
