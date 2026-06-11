@@ -1,6 +1,6 @@
 {
   "name": "@floomhq/agent-scope",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Scoped write access for AI coding agents. Stop agents from silently breaking code outside their task boundary.",
   "license": "MIT",
   "author": "Federico De Ponte",
