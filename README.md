@@ -14,6 +14,12 @@ npm install -g @floomhq/agent-scope
 
 ---
 
+## Demo
+
+<p align="center">
+  <img src="assets/demo.gif" alt="agent-scope CLI demo" width="900">
+</p>
+
 ## The problem
 
 You ask an agent to *"fix the settings page."* It changes:
@@ -24,6 +30,18 @@ You ask an agent to *"fix the settings page."* It changes:
 - Some random utility file ❌ now broken
 
 **agent-scope** makes this visible, preventable, and fixable *before* it hits production.
+
+## Philosophy: boundary guard, not correctness oracle
+
+**agent-scope** solves a specific problem: **cross-module contamination**. It does not try to prove your code is correct — your tests do that.
+
+| Layer | Responsibility | Example |
+|-------|---------------|---------|
+| **agent-scope** | *Which files can change?* | Block auth, billing, migrations unless approved |
+| **tests / typecheck / lint** | *Did the code break?* | Sidebar buttons still work after top-bar fix |
+| **human review** | *Should this change exist at all?* | Approve a protected-file change with justification |
+
+This separation is intentional. A tool that tries to do everything becomes a cop. A tool that does one thing well becomes a guardrail.
 
 ## The solution
 
@@ -53,12 +71,6 @@ scope:
 
 The agent can **read** the whole repo for context, but can only **write** what you scoped. Touch a protected file and the check fails.
 
-## Demo
-
-<p align="center">
-  <img src="assets/demo.gif" alt="agent-scope CLI demo" width="900">
-</p>
-
 ## Quick start
 
 ```bash
@@ -78,7 +90,8 @@ agent-scope status
 
 # 6. If the agent needs to touch a protected file
 agent-scope request packages/auth/session.ts \
-  --reason "Need session field for notification preference"
+  --reason "Need session field for notification preference" \
+  --required-by "apps/web/settings/page.tsx"
 
 # 7. Approve the expansion
 agent-scope approve packages/auth/session.ts
@@ -91,6 +104,7 @@ agent-scope approve packages/auth/session.ts
 | `agent-scope init` | Create `agent.scope.yml` and `.agent-scope/` |
 | `agent-scope init --interactive` | Guided setup with prompts |
 | `agent-scope check` | Validate current git diff against scope |
+| `agent-scope check --with-diff` | Validate + show actual diff per file |
 | `agent-scope run` | Validate scope, then run `checks.before_done` |
 | `agent-scope run <cmd>` | Validate scope, then run a custom command |
 | `agent-scope status` | Show task, scope, approvals, and pending requests |
@@ -109,32 +123,63 @@ agent-scope check --staged              # only staged changes
 agent-scope check --unstaged            # only unstaged changes
 agent-scope check --json                # JSON output for CI/scripts
 agent-scope check --run-checks          # also execute checks.before_done
+agent-scope check --with-diff           # show git diff for each file
 ```
 
-## Example output
+## Handling real-world scenarios
 
+### "I fixed the top bar, but the sidebar buttons broke"
+
+Both files are in your `write` scope, so `agent-scope check` passes. This is correct — **scope guards boundaries, tests guard correctness**.
+
+Your `checks.before_done` should catch this:
+
+```yaml
+checks:
+  before_done:
+    - "pnpm test components/sidebar"
+    - "pnpm test components/top-bar"
+    - "pnpm typecheck"
 ```
-Agent Scope Check
 
-Task:
-Refactor email settings UI
+If sidebar tests fail after a top-bar change, the agent sees the failure and must fix it before finishing. `agent-scope run` enforces this gate.
 
-Allowed changes:
-✓ apps/web/settings/page.tsx
-✓ packages/email/send.ts
+### "I need to change a protected file because my allowed file depends on it"
 
-Blocked changes:
-✕ packages/auth/session.ts
-  Reason: protected path
+This is a legitimate scope expansion. Document the dependency chain:
 
-Result: Scope violation found.
+```bash
+agent-scope request packages/auth/session.ts \
+  --reason "Add email preference to session payload" \
+  --required-by "apps/web/settings/page.tsx"
+```
 
-Next steps:
+The `--required-by` flag records which allowed file necessitates the protected change. This makes human review much faster.
 
-  packages/auth/session.ts
-    Revert:           git checkout -- packages/auth/session.ts
-    Request access:   agent-scope request packages/auth/session.ts --reason "..."
-    Approve:          agent-scope approve packages/auth/session.ts
+### "How do I know the protected-file change is safe?"
+
+Use `check --with-diff`:
+
+```bash
+agent-scope check --with-diff
+```
+
+This shows the actual diff for every file. An import addition looks very different from rewriting auth logic. Review the diff, then approve or request.
+
+### "The agent keeps requesting scope expansions for tiny changes"
+
+Make your `write` scope broader for safe areas, or narrow your `protected` scope to only the truly sensitive files. Example:
+
+```yaml
+# Too restrictive — every utility change needs approval
+write:
+  - "apps/web/settings/**"
+
+# Better — utilities are safe to touch
+write:
+  - "apps/web/settings/**"
+  - "packages/shared/utils/**"
+  - "packages/ui/**"
 ```
 
 ## Enforcement model
@@ -160,21 +205,6 @@ protected > approved > approval_required > write > blocked
 **Strict** (default): only `scope.write` files are allowed. Everything else is blocked.
 
 **Warn**: out-of-scope files become warnings (exit `0`), but protected paths are still blocked.
-
-## Why this exists
-
-> *"Work on a feature, things that were already working get altered or broken."*
->
-> *"I wish you could freeze code."*
->
-> *"Necessary changes to module X should be done based on issues, not based on the agent working on module Y."*
-
-**agent-scope** is granular access control for AI agents. It does not freeze code — it forces cross-module changes to be visible and intentional, not accidental.
-
-- Agents **read broadly** for context
-- Agents **write narrowly** by default
-- Protected modules require **explicit approval**
-- Escalation creates an **audit trail** (request files + approvals)
 
 ## CI / GitHub Action
 
@@ -235,6 +265,7 @@ When an agent realizes it needs to touch a protected file:
 ```bash
 agent-scope request packages/auth/session.ts \
   --reason "Need session field for notification preference" \
+  --required-by "apps/web/settings/page.tsx" \
   --risk-level high \
   --agent-summary "The settings page needs access to user email preference." \
   --suggested-checks "pnpm test packages/auth,pnpm typecheck"

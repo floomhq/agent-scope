@@ -37,6 +37,7 @@ export function createRequest(
     riskWhy?: string;
     agentSummary?: string;
     suggestedChecks?: string[];
+    requiredBy?: string;
     cwd?: string;
   } = {}
 ): string {
@@ -66,6 +67,10 @@ export function createRequest(
       level: options.riskLevel ?? "medium",
       why: options.riskWhy ?? "",
     };
+  }
+
+  if (options.requiredBy) {
+    request.required_by = options.requiredBy;
   }
 
   if (options.suggestedChecks) {

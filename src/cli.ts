@@ -6,7 +6,7 @@ import readline from "node:readline";
 import yaml from "js-yaml";
 import pc from "picocolors";
 import { loadConfig, defaultConfig } from "./config.js";
-import { getChangedFiles, isGitRepo } from "./git.js";
+import { getChangedFiles, getFileDiff, isGitRepo } from "./git.js";
 import { evaluateAll } from "./policy.js";
 import { readApprovals, writeApproval, removeApproval } from "./approvals.js";
 import { createRequest, listRequests, readRequest } from "./requests.js";
@@ -38,6 +38,7 @@ ${pc.bold("Check options:")}
 
 ${pc.bold("Request options:")}
   --reason <text>         Why the expansion is needed
+  --required-by <file>    Allowed file that requires this protected change
   --risk-level <level>    low | medium | high
   --agent-summary <text>  Multi-line summary of the change
   --suggested-checks <cmds> Comma-separated list of suggested checks
@@ -52,7 +53,7 @@ function parseFlag(args: string[], flag: string): string | undefined {
 function performCheck(
   cwd: string,
   args: string[]
-): { result: ReturnType<typeof evaluateAll> & { taskId: string; taskTitle: string }; isJson: boolean } {
+): { result: ReturnType<typeof evaluateAll> & { taskId: string; taskTitle: string }; isJson: boolean; files: string[]; diffs?: Record<string, string> } {
   let config;
   try {
     config = loadConfig(cwd);
@@ -62,6 +63,7 @@ function performCheck(
   }
 
   const isJson = args.includes("--json");
+  const withDiff = args.includes("--with-diff");
   const base = parseFlag(args, "--base");
   const staged = args.includes("--staged");
   const unstaged = args.includes("--unstaged");
@@ -86,14 +88,21 @@ function performCheck(
   const approvals = readApprovals(cwd);
   const evaluation = evaluateAll(files, config, approvals);
 
-  return {
-    result: {
-      taskId: config.task.id,
-      taskTitle: config.task.title,
-      ...evaluation,
-    },
-    isJson,
+  const result = {
+    taskId: config.task.id,
+    taskTitle: config.task.title,
+    ...evaluation,
   };
+
+  if (withDiff) {
+    const diffs: Record<string, string> = {};
+    for (const file of files) {
+      diffs[file] = getFileDiff(file, { base, staged, unstaged, cwd });
+    }
+    return { result, isJson, files, diffs };
+  }
+
+  return { result, isJson, files };
 }
 
 async function askQuestion(rl: readline.Interface, question: string): Promise<string> {
@@ -399,8 +408,8 @@ async function main(): Promise<void> {
         process.exit(2);
       }
 
-      const { result, isJson } = performCheck(cwd, args);
-      printReport(result, isJson ? "json" : "pretty");
+      const { result, isJson, diffs } = performCheck(cwd, args);
+      printReport(result, isJson ? "json" : "pretty", diffs);
 
       const code = exitCode(result);
 
@@ -486,12 +495,14 @@ async function main(): Promise<void> {
       const agentSummary = parseFlag(args, "--agent-summary");
       const suggestedChecksRaw = parseFlag(args, "--suggested-checks");
       const suggestedChecks = suggestedChecksRaw ? suggestedChecksRaw.split(",").map((s) => s.trim()) : undefined;
+      const requiredBy = parseFlag(args, "--required-by");
 
       const requestPath = createRequest(config.task.id, paths, reason, {
         cwd,
         riskLevel,
         agentSummary,
         suggestedChecks,
+        requiredBy,
       });
       console.log(`Created scope request: ${requestPath}`);
       process.exit(0);

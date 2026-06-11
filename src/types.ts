@@ -52,6 +52,7 @@ export interface ScopeRequest {
   task_id: string;
   requested_paths: string[];
   reason: string;
+  required_by?: string;
   agent_summary?: string;
   risk?: {
     level: string;

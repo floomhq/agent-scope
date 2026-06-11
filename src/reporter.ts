@@ -2,7 +2,11 @@ import pc from "picocolors";
 import type { CheckResult, ScopeDecision } from "./types.js";
 import type { RunResult } from "./runner.js";
 
-export function printReport(result: CheckResult, format: "pretty" | "json" = "pretty"): void {
+export function printReport(
+  result: CheckResult,
+  format: "pretty" | "json" = "pretty",
+  diffs?: Record<string, string>
+): void {
   if (format === "json") {
     console.log(JSON.stringify(toJson(result), null, 2));
     return;
@@ -17,6 +21,9 @@ export function printReport(result: CheckResult, format: "pretty" | "json" = "pr
     console.log(pc.bold("Allowed changes:"));
     for (const item of result.allowed) {
       console.log(`${pc.green("✓")} ${item.file}`);
+      if (diffs?.[item.file]) {
+        printDiff(diffs[item.file]);
+      }
     }
     console.log();
   }
@@ -26,6 +33,9 @@ export function printReport(result: CheckResult, format: "pretty" | "json" = "pr
     for (const item of result.approvalRequired) {
       console.log(`${pc.yellow("?")} ${item.file}`);
       console.log(`  Reason: ${item.reason}`);
+      if (diffs?.[item.file]) {
+        printDiff(diffs[item.file]);
+      }
     }
     console.log();
   }
@@ -35,6 +45,9 @@ export function printReport(result: CheckResult, format: "pretty" | "json" = "pr
     for (const item of result.warnings) {
       console.log(`${pc.yellow("!")} ${item.file}`);
       console.log(`  Reason: ${item.reason}`);
+      if (diffs?.[item.file]) {
+        printDiff(diffs[item.file]);
+      }
     }
     console.log();
   }
@@ -44,6 +57,9 @@ export function printReport(result: CheckResult, format: "pretty" | "json" = "pr
     for (const item of result.violations) {
       console.log(`${pc.red("✕")} ${item.file}`);
       console.log(`  Reason: ${item.reason}`);
+      if (diffs?.[item.file]) {
+        printDiff(diffs[item.file]);
+      }
     }
     console.log();
   }
@@ -70,6 +86,22 @@ export function printReport(result: CheckResult, format: "pretty" | "json" = "pr
       console.log(`    Approve:  agent-scope approve ${a.file}`);
       console.log("");
     }
+  }
+}
+
+function printDiff(diff: string): void {
+  const lines = diff.split("\n").slice(0, 12);
+  for (const line of lines) {
+    if (line.startsWith("+")) {
+      console.log(pc.green(`    ${line}`));
+    } else if (line.startsWith("-")) {
+      console.log(pc.red(`    ${line}`));
+    } else {
+      console.log(pc.gray(`    ${line}`));
+    }
+  }
+  if (diff.split("\n").length > 12) {
+    console.log(pc.gray(`    ... (${diff.split("\n").length - 12} more lines)`));
   }
 }
 
