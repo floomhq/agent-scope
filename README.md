@@ -208,6 +208,8 @@ protected > approved > approval_required > write > blocked
 
 ## CI / GitHub Action
 
+### Basic check
+
 Add `.github/workflows/agent-scope.yml`:
 
 ```yaml
@@ -224,6 +226,10 @@ jobs:
       - run: npm install -g @floomhq/agent-scope
       - run: agent-scope check --base origin/${{ github.base_ref }}
 ```
+
+### PR comment with diffs
+
+For a richer experience that posts results (including `--with-diff` output) directly on the PR, see [`examples/github-action-with-pr-comment.yml`](./examples/github-action-with-pr-comment.yml).
 
 ## Claude Code / Cursor / Codex integration
 
@@ -251,12 +257,16 @@ Example JSON output:
 
 ### Pre-commit hook
 
+Save to `.git/hooks/pre-commit` (and `chmod +x`):
+
 ```bash
 #!/bin/sh
-agent-scope run
+agent-scope check --staged
 ```
 
-If scope is violated, the commit is blocked. If clean, your tests run automatically.
+If scope is violated, the commit is blocked.
+
+For a hook that also runs `checks.before_done` (tests, typecheck, etc.), see [`examples/hooks/pre-commit`](./examples/hooks/pre-commit).
 
 ## Requesting scope expansion
 

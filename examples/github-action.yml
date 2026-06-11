@@ -17,7 +17,7 @@ jobs:
           node-version: "20"
 
       - name: Install agent-scope
-        run: npm install -g agent-scope
+        run: npm install -g @floomhq/agent-scope
 
       - name: Check scope
         run: agent-scope check --base origin/${{ github.base_ref }}

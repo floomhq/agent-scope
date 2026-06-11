@@ -1,0 +1,26 @@
+#!/bin/sh
+# agent-scope pre-commit hook
+# Place this file at .git/hooks/pre-commit in your repo
+
+# Check if agent-scope is installed
+if ! command -v agent-scope >/dev/null 2>&1; then
+    echo "agent-scope not found. Install with: npm install -g @floomhq/agent-scope"
+    exit 1
+fi
+
+# Run scope check on staged changes
+echo "Running agent-scope check..."
+if ! agent-scope check --staged; then
+    echo ""
+    echo "❌ Scope check failed."
+    echo ""
+    echo "Options:"
+    echo "  1. Revert out-of-scope changes: git restore <file>"
+    echo "  2. Request scope expansion: agent-scope request <path> --reason '...'"
+    echo "  3. Approve if already reviewed: agent-scope approve <path>"
+    echo ""
+    echo "To bypass (not recommended): git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ Scope check passed."
