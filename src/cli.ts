@@ -6,12 +6,13 @@ import readline from "node:readline";
 import yaml from "js-yaml";
 import pc from "picocolors";
 import { loadConfig, defaultConfig } from "./config.js";
-import { getChangedFiles, getFileDiff, isGitRepo } from "./git.js";
+import { getChangedFiles, getFileDiff, getFullDiff, isGitRepo } from "./git.js";
 import { evaluateAll } from "./policy.js";
 import { readApprovals, writeApproval, removeApproval } from "./approvals.js";
 import { createRequest, listRequests, readRequest } from "./requests.js";
-import { printReport, exitCode, toJson, printCheckResults } from "./reporter.js";
+import { printReport, exitCode, toJson, printCheckResults, printReviewResult } from "./reporter.js";
 import { runCheckList, runCommand } from "./runner.js";
+import { reviewDiff, hasBlockingConcerns, hasHighSeverityConcerns } from "./review.js";
 
 function showHelp(): void {
   console.log(`
@@ -35,6 +36,15 @@ ${pc.bold("Check options:")}
   --unstaged              Only check unstaged changes
   --json                  Output results as JSON
   --run-checks            Also run checks.before_done from config
+  --review                Also run checks.review (LLM diff review)
+
+${pc.bold("Review config example:")}
+  checks:
+    review:
+      provider:
+        base_url: https://openrouter.ai/api/v1
+        api_key_env: OPENROUTER_API_KEY
+      model: qwen/qwen3-coder-480b-a35b-instruct:free
 
 ${pc.bold("Request options:")}
   --reason <text>         Why the expansion is needed
@@ -168,7 +178,7 @@ async function interactiveInit(cwd: string): Promise<void> {
 
   const gitignorePath = path.join(approvalsDir, ".gitignore");
   if (!fs.existsSync(gitignorePath)) {
-    fs.writeFileSync(gitignorePath, "requests/\n", "utf-8");
+    fs.writeFileSync(gitignorePath, "requests/\nreview-cache.json\n", "utf-8");
   }
 
   console.log(pc.green("\n✓ Created agent.scope.yml and .agent-scope/\n"));
@@ -368,7 +378,7 @@ async function main(): Promise<void> {
 
         const gitignorePath = path.join(approvalsDir, ".gitignore");
         if (!fs.existsSync(gitignorePath)) {
-          fs.writeFileSync(gitignorePath, "requests/\n", "utf-8");
+          fs.writeFileSync(gitignorePath, "requests/\nreview-cache.json\n", "utf-8");
         }
 
         console.log("Created agent.scope.yml and .agent-scope/");
@@ -411,7 +421,28 @@ async function main(): Promise<void> {
       const { result, isJson, diffs } = performCheck(cwd, args);
       printReport(result, isJson ? "json" : "pretty", diffs);
 
-      const code = exitCode(result);
+      let code = exitCode(result);
+
+      if (code === 0 && args.includes("--review")) {
+        const config = loadConfig(cwd);
+        if (config.checks?.review) {
+          try {
+            const base = parseFlag(args, "--base");
+            const staged = args.includes("--staged");
+            const unstaged = args.includes("--unstaged");
+            const fullDiff = getFullDiff({ base, staged, unstaged, cwd });
+
+            const reviewResult = await reviewDiff({ diff: fullDiff, config });
+            printReviewResult(reviewResult);
+            if (hasBlockingConcerns(reviewResult)) {
+              code = 1;
+            }
+          } catch (err) {
+            console.error(pc.red(`\nReview failed: ${err instanceof Error ? err.message : String(err)}`));
+            process.exit(2);
+          }
+        }
+      }
 
       if (code === 0 && args.includes("--run-checks")) {
         const config = loadConfig(cwd);
@@ -444,6 +475,26 @@ async function main(): Promise<void> {
         process.exit(code);
       }
 
+      const config = loadConfig(cwd);
+
+      if (config.checks?.review) {
+        try {
+          const base = parseFlag(args, "--base");
+          const staged = args.includes("--staged");
+          const unstaged = args.includes("--unstaged");
+          const fullDiff = getFullDiff({ base, staged, unstaged, cwd });
+
+          const reviewResult = await reviewDiff({ diff: fullDiff, config });
+          printReviewResult(reviewResult);
+          if (hasBlockingConcerns(reviewResult)) {
+            process.exit(1);
+          }
+        } catch (err) {
+          console.error(pc.red(`\nReview failed: ${err instanceof Error ? err.message : String(err)}`));
+          process.exit(2);
+        }
+      }
+
       const userCommand = args.slice(1).find((a) => !a.startsWith("-"));
 
       if (userCommand) {
@@ -452,10 +503,9 @@ async function main(): Promise<void> {
         if (runResult.stderr) console.error(runResult.stderr);
         process.exit(runResult.exitCode);
       } else {
-        const config = loadConfig(cwd);
         const commands = config.checks?.before_done ?? [];
-        if (commands.length === 0) {
-          console.log("No checks configured. Use checks.before_done in agent.scope.yml or pass a command.");
+        if (commands.length === 0 && !config.checks?.review) {
+          console.log("No checks configured. Use checks.before_done or checks.review in agent.scope.yml or pass a command.");
           process.exit(0);
         }
         const checkResults = runCheckList(commands, cwd);

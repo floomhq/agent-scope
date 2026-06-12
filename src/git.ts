@@ -84,6 +84,28 @@ export function getFileDiff(filePath: string, options: GitDiffOptions = {}): str
   }
 }
 
+export function getFullDiff(options: GitDiffOptions = {}): string {
+  const cwd = options.cwd ?? process.cwd();
+  let command: string;
+
+  if (options.base) {
+    command = `git diff ${options.base}...HEAD`;
+  } else if (options.staged) {
+    command = "git diff --cached";
+  } else if (options.unstaged) {
+    command = "git diff";
+  } else {
+    command = "git diff HEAD";
+  }
+
+  try {
+    return execSync(command, { cwd, encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to get diff: ${message}`);
+  }
+}
+
 export function isGitRepo(cwd: string = process.cwd()): boolean {
   try {
     execSync("git rev-parse --git-dir", { cwd, encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] });

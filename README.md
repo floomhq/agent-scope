@@ -105,7 +105,8 @@ agent-scope approve packages/auth/session.ts
 | `agent-scope init --interactive` | Guided setup with prompts |
 | `agent-scope check` | Validate current git diff against scope |
 | `agent-scope check --with-diff` | Validate + show actual diff per file |
-| `agent-scope run` | Validate scope, then run `checks.before_done` |
+| `agent-scope check --review` | Validate + run LLM diff review |
+| `agent-scope run` | Validate scope, then run `checks.before_done` and `checks.review` |
 | `agent-scope run <cmd>` | Validate scope, then run a custom command |
 | `agent-scope status` | Show task, scope, approvals, and pending requests |
 | `agent-scope scope` | Display the full scope configuration |
@@ -123,6 +124,7 @@ agent-scope check --staged              # only staged changes
 agent-scope check --unstaged            # only unstaged changes
 agent-scope check --json                # JSON output for CI/scripts
 agent-scope check --run-checks          # also execute checks.before_done
+agent-scope check --review              # also run checks.review (LLM diff review)
 agent-scope check --with-diff           # show git diff for each file
 ```
 
@@ -143,6 +145,100 @@ checks:
 ```
 
 If sidebar tests fail after a top-bar change, the agent sees the failure and must fix it before finishing. `agent-scope run` enforces this gate.
+
+### "The agent took a shortcut and broke hover buttons"
+
+Scope checks pass because the file is allowed. The bug is behavioral. Add an LLM review step to catch shortcut bias before it merges:
+
+```yaml
+checks:
+  review:
+    provider:
+      base_url: "https://openrouter.ai/api/v1"
+      api_key_env: "OPENROUTER_API_KEY"
+    model: "qwen/qwen3-coder-480b-a35b-instruct:free"
+```
+
+Then run:
+
+```bash
+agent-scope check --review
+# or
+agent-scope run
+```
+
+The review model reads the full diff and flags concerns like removed hover states, missing tests, or API contract changes. High and medium severity concerns block the run.
+
+The provider is any OpenAI-compatible endpoint — OpenRouter, LiteLLM, Ollama, Groq, direct OpenAI, etc.
+
+```yaml
+# LiteLLM self-hosted proxy
+checks:
+  review:
+    provider:
+      base_url: "https://litellm.yourcompany.com/v1"
+      api_key_env: "LITELLM_API_KEY"
+    model: "claude-sonnet-4"
+
+# Ollama local
+checks:
+  review:
+    provider:
+      base_url: "http://localhost:11434/v1"
+    model: "qwen2.5:7b"
+```
+
+#### Model fallback
+
+If your primary model is rate-limited or down, the request falls back to the next model:
+
+```yaml
+checks:
+  review:
+    models:
+      - "openrouter/anthropic/claude-3.5-sonnet"
+      - "openrouter/qwen/qwen3-coder-480b-a35b-instruct:free"
+```
+
+#### Retries and timeout
+
+```yaml
+checks:
+  review:
+    model: "gpt-4o-mini"
+    timeout: 30000        # ms, default 60000
+    retries: 3            # default 2
+```
+
+#### Caching
+
+Review results are cached by diff hash so repeated `agent-scope run` calls don't burn tokens. Cache is stored in `.agent-scope/review-cache.json` (gitignored by `agent-scope init`).
+
+```yaml
+checks:
+  review:
+    model: "gpt-4o-mini"
+    cache: true           # default true
+```
+
+For existing projects, add this to `.gitignore`:
+
+```
+.agent-scope/review-cache.json
+```
+
+#### Custom prompt
+
+Customize the prompt if you want the reviewer to focus on specific risks:
+
+```yaml
+checks:
+  review:
+    model: "gpt-4o-mini"
+    prompt: |
+      Review this diff for accessibility regressions.
+      Return JSON: { clean, summary, concerns[{severity, file, description, suggested_checks}] }.
+```
 
 ### "I need to change a protected file because my allowed file depends on it"
 

@@ -1,5 +1,5 @@
 import pc from "picocolors";
-import type { CheckResult, ScopeDecision } from "./types.js";
+import type { CheckResult, ScopeDecision, ReviewResult } from "./types.js";
 import type { RunResult } from "./runner.js";
 
 export function printReport(
@@ -141,3 +141,26 @@ export function exitCode(result: CheckResult): number {
   if (result.approvalRequired.length > 0) return 1;
   return 0;
 }
+
+
+export function printReviewResult(result: ReviewResult): void {
+  console.log(pc.bold("\n🤖 Agent Review\n"));
+  console.log(`${result.summary}\n`);
+
+  if (result.concerns.length === 0) {
+    console.log(pc.green("✓ No concerns raised."));
+    return;
+  }
+
+  for (const concern of result.concerns) {
+    const color = concern.severity === "high" ? pc.red : concern.severity === "medium" ? pc.yellow : pc.gray;
+    const icon = concern.severity === "high" ? "✕" : concern.severity === "medium" ? "!" : "•";
+    console.log(`${color(icon)} ${color(pc.bold(concern.severity.toUpperCase()))}${concern.file ? ` — ${concern.file}` : ""}`);
+    console.log(`  ${concern.description}`);
+    if (concern.suggested_checks && concern.suggested_checks.length > 0) {
+      console.log(`  Suggested checks: ${concern.suggested_checks.join(", ")}`);
+    }
+    console.log();
+  }
+}
+

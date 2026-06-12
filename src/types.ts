@@ -1,3 +1,32 @@
+export interface ReviewProviderConfig {
+  base_url?: string;
+  api_key_env?: string;
+}
+
+export interface ReviewConcern {
+  severity: "low" | "medium" | "high";
+  file?: string;
+  description: string;
+  suggested_checks?: string[];
+}
+
+export interface ReviewResult {
+  clean: boolean;
+  summary: string;
+  concerns: ReviewConcern[];
+}
+
+export interface ReviewConfig {
+  provider?: ReviewProviderConfig;
+  model?: string;
+  models?: string[];
+  prompt?: string;
+  enabled?: boolean;
+  timeout?: number;
+  retries?: number;
+  cache?: boolean;
+}
+
 export interface AgentScopeConfig {
   version: string;
   mode?: "strict" | "warn";
@@ -14,6 +43,7 @@ export interface AgentScopeConfig {
   };
   checks?: {
     before_done?: string[];
+    review?: ReviewConfig;
   };
   escalation?: {
     mode?: string;
